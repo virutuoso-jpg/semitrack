@@ -17,6 +17,7 @@ from datetime import datetime
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -79,9 +80,7 @@ def check_new_earnings():
             logger.error(f"[실적체크] {name} 확인 실패: {e}")
 
 
-def main():
-    scheduler = BlockingScheduler(timezone="Asia/Seoul")
-
+def add_jobs(scheduler):
     # 외국인 수급: 09,12,15시 (3시간 간격, 장중 위주)
     scheduler.add_job(update_foreign_investor, CronTrigger(hour="9,12,15", minute=0))
 
@@ -94,6 +93,28 @@ def main():
     # 실적 공시 체크: 매일 09:00
     scheduler.add_job(check_new_earnings, CronTrigger(hour=9, minute=0))
 
+
+def start_background(run_immediately: bool = True):
+    """웹 서버(server.py) 프로세스 안에서 백그라운드로 스케줄러를 띄운다.
+    무료 호스팅은 재배포/재시작 때마다 저장된 파일이 초기화되므로,
+    시작하자마자 한 번 즉시 수집해 빈 화면을 방지한다."""
+    if run_immediately:
+        try:
+            update_foreign_investor()
+            update_institution_flow()
+        except Exception as e:
+            logger.error(f"초기 데이터 수집 실패: {e}")
+
+    scheduler = BackgroundScheduler(timezone="Asia/Seoul")
+    add_jobs(scheduler)
+    scheduler.start()
+    logger.info("백그라운드 스케줄러 시작됨.")
+    return scheduler
+
+
+def main():
+    scheduler = BlockingScheduler(timezone="Asia/Seoul")
+    add_jobs(scheduler)
     logger.info("스케줄러 시작. Ctrl+C로 종료.")
     scheduler.start()
 

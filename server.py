@@ -13,8 +13,13 @@ import os
 from flask import Flask, jsonify, request, send_from_directory
 
 from clients import dart_client, export_stats_client, hyperscaler_capex, kis_client, krx_investor, market_reference
+from scheduler import jobs as scheduler_jobs
 
 app = Flask(__name__, static_folder="frontend", static_url_path="")
+
+# 무료 호스팅은 재배포/재시작마다 저장 파일이 초기화되므로,
+# 서버가 뜰 때 한 번 즉시 수집하고 이후 주기적으로 백그라운드에서 갱신한다.
+scheduler_jobs.start_background()
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
