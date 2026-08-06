@@ -85,7 +85,8 @@ def quarterly_financials():
     try:
         result = dart_client.get_quarterly_financials(stock, year, quarter)
     except Exception as e:
-        return jsonify({"error": f"DART 조회 실패: {e}"}), 502
+        app.logger.error(f"DART 조회 실패: {e}")
+        return jsonify({"error": "DART 조회 실패"}), 502
 
     items = result.get("list") or []
     picked = {}
@@ -116,7 +117,8 @@ def export_stats():
     try:
         result = export_stats_client.get_trade_stats(hs_code, strt, end, cnty_cd)
     except Exception as e:
-        return jsonify({"error": f"관세청 API 조회 실패: {e}"}), 502
+        app.logger.error(f"관세청 API 조회 실패: {e}")
+        return jsonify({"error": "관세청 API 조회 실패"}), 502
 
     header = result.get("header", {})
     if header.get("resultCode") != "00":
@@ -150,7 +152,8 @@ def valuation():
     try:
         price = kis_client.get_current_price(ticker)
     except Exception as e:
-        return jsonify({"error": f"KIS 조회 실패: {e}"}), 502
+        app.logger.error(f"KIS 조회 실패: {e}")
+        return jsonify({"error": "KIS 조회 실패"}), 502
 
     return jsonify(
         {
@@ -170,7 +173,8 @@ def sox_index():
     try:
         return jsonify(market_reference.get_sox_index())
     except Exception as e:
-        return jsonify({"error": f"SOX 지수 조회 실패: {e}"}), 502
+        app.logger.error(f"SOX 지수 조회 실패: {e}")
+        return jsonify({"error": "SOX 지수 조회 실패"}), 502
 
 
 @app.route("/api/micron-trend")
@@ -178,7 +182,8 @@ def micron_trend():
     try:
         return jsonify(market_reference.get_micron_revenue_trend())
     except Exception as e:
-        return jsonify({"error": f"마이크론 매출 조회 실패: {e}"}), 502
+        app.logger.error(f"마이크론 매출 조회 실패: {e}")
+        return jsonify({"error": "마이크론 매출 조회 실패"}), 502
 
 
 if __name__ == "__main__":
