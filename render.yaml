@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: semitrack
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn server:app
+    envVars:
+      - key: KIS_APP_KEY
+        sync: false
+      - key: KIS_APP_SECRET
+        sync: false
+      - key: KIS_ACCOUNT_NO
+        sync: false
+      - key: KIS_ACCOUNT_PRODUCT_CD
+        value: "01"
+      - key: KIS_ENV
+        value: vps
+      - key: DART_API_KEY
+        sync: false
+      - key: KRX_ID
+        sync: false
+      - key: KRX_PW
+        sync: false
+      - key: CUSTOMS_API_KEY
+        sync: false
+      - key: TICKER_SAMSUNG
+        value: "005930"
+      - key: TICKER_SKHYNIX
+        value: "000660"

@@ -1,0 +1,7 @@
+python-dotenv
+requests
+pykrx
+APScheduler
+pandas
+flask
+gunicorn

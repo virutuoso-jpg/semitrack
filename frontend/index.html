@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SEMI.TRACK — 반도체 투자 대시보드</title>
+<link rel="stylesheet" href="style.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="circuit-bg"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-chip">◇</span>
+    <h1>SEMI<span class="accent">.</span>TRACK</h1>
+  </div>
+  <div class="stock-toggle" id="stockToggle">
+    <button class="toggle-btn active" data-stock="삼성전자">삼성전자</button>
+    <button class="toggle-btn" data-stock="SK하이닉스">SK하이닉스</button>
+  </div>
+</header>
+
+<main class="grid">
+
+  <section class="card">
+    <div class="card-head">
+      <h2>외국인 · 기관 순매수 동향</h2>
+      <span class="src">source: KIS</span>
+    </div>
+    <div class="card-body" id="foreignInvestorBody">
+      <canvas id="foreignInvestorChart"></canvas>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>사모 · 금융투자 · 연기금 순매수</h2>
+      <span class="src">source: KRX 데이터마켓</span>
+    </div>
+    <div class="card-body" id="institutionFlowBody">
+      <canvas id="institutionFlowChart"></canvas>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>분기 실적</h2>
+      <span class="src">source: DART</span>
+    </div>
+    <div class="card-body" id="financialsBody">
+      <div class="metric-row">
+        <div class="metric">
+          <span class="metric-label">매출액</span>
+          <span class="metric-value" id="revenueValue">-</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">영업이익</span>
+          <span class="metric-value" id="opProfitValue">-</span>
+        </div>
+      </div>
+      <p class="metric-sub" id="financialsPeriod"></p>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>밸류에이션</h2>
+      <span class="src">source: KIS</span>
+    </div>
+    <div class="card-body" id="valuationBody">
+      <div class="metric-row">
+        <div class="metric">
+          <span class="metric-label">PER</span>
+          <span class="metric-value" id="perValue">-</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">PBR</span>
+          <span class="metric-value" id="pbrValue">-</span>
+        </div>
+      </div>
+      <div class="metric-row" style="margin-top:14px;">
+        <div class="metric">
+          <span class="metric-label">EPS</span>
+          <span class="metric-value small" id="epsValue">-</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">BPS</span>
+          <span class="metric-value small" id="bpsValue">-</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">외국인 보유율</span>
+          <span class="metric-value small" id="foreignRatioValue">-</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>필라델피아 반도체지수 (SOX)</h2>
+      <span class="src">source: Yahoo Finance</span>
+    </div>
+    <div class="card-body" id="soxBody">
+      <div class="metric-row">
+        <div class="metric">
+          <span class="metric-label">현재가</span>
+          <span class="metric-value" id="soxValue">-</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">전일 대비</span>
+          <span class="metric-value" id="soxChangeValue">-</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>마이크론(Micron) 분기 매출 추이</h2>
+      <span class="src">source: SEC EDGAR (참고용, 회계연도 9월 결산)</span>
+    </div>
+    <div class="card-body" id="micronBody">
+      <canvas id="micronChart"></canvas>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>반도체 수출입 통계 (대미국 · 메모리)</h2>
+      <span class="src">source: 관세청</span>
+    </div>
+    <div class="card-body" id="exportStatsBody">
+      <canvas id="exportStatsChart"></canvas>
+    </div>
+  </section>
+
+  <section class="card wide">
+    <div class="card-head">
+      <h2>하이퍼스케일러 Capex · 클라우드 매출</h2>
+      <span class="src">source: 수동 입력 (실적 발표 기준)</span>
+    </div>
+    <div class="card-body" id="capexBody">
+      <table class="capex-table" id="capexTable">
+        <thead>
+          <tr><th>기업</th><th>연도/분기</th><th>Capex (백만$)</th><th>클라우드 매출 (백만$)</th><th>메모</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
