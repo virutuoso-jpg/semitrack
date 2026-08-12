@@ -12,7 +12,7 @@ import os
 
 from flask import Flask, jsonify, request, send_from_directory
 
-from clients import dart_client, export_stats_client, hyperscaler_capex, kis_client, krx_investor, market_reference
+from clients import dart_client, export_stats_client, hyperscaler_capex, krx_investor, market_reference
 from scheduler import jobs as scheduler_jobs
 
 app = Flask(__name__, static_folder="frontend", static_url_path="")
@@ -53,18 +53,17 @@ def foreign_investor():
     if not snapshot or stock not in snapshot:
         return jsonify({"error": "저장된 스냅샷이 없습니다. scheduler/jobs.py의 update_foreign_investor()를 먼저 실행하세요."}), 404
 
-    rows = snapshot[stock]
+    data = snapshot[stock]
+    dates = sorted(data.get("close", {}).keys())
     parsed = [
         {
-            "date": r["stck_bsop_date"],
-            "close": _to_float(r["stck_clpr"]),
-            "foreign_net_qty": _to_float(r["frgn_ntby_qty"]),
-            "institution_net_qty": _to_float(r["orgn_ntby_qty"]),
+            "date": d,
+            "close": _to_float(data["close"].get(d)),
+            "foreign_net_qty": _to_float(data["foreign_net_value"].get(d)),
+            "institution_net_qty": _to_float(data["institution_net_value"].get(d)),
         }
-        for r in rows
-        if r.get("frgn_ntby_qty") not in (None, "")
+        for d in dates
     ]
-    parsed.sort(key=lambda r: r["date"])
     return jsonify(parsed)
 
 
@@ -150,22 +149,12 @@ def valuation():
     if not ticker:
         return jsonify({"error": f"등록되지 않은 종목: {stock}"}), 400
     try:
-        price = kis_client.get_current_price(ticker)
+        data = krx_investor.get_valuation(ticker)
     except Exception as e:
-        app.logger.error(f"KIS 조회 실패: {e}")
-        return jsonify({"error": "KIS 조회 실패"}), 502
+        app.logger.error(f"밸류에이션 조회 실패: {e}")
+        return jsonify({"error": "밸류에이션 조회 실패"}), 502
 
-    return jsonify(
-        {
-            "stock": stock,
-            "price": _to_float(price.get("stck_prpr")),
-            "per": _to_float(price.get("per")),
-            "pbr": _to_float(price.get("pbr")),
-            "eps": _to_float(price.get("eps")),
-            "bps": _to_float(price.get("bps")),
-            "foreign_holding_ratio": _to_float(price.get("hts_frgn_ehrt")),
-        }
-    )
+    return jsonify({"stock": stock, **data})
 
 
 @app.route("/api/sox-index")

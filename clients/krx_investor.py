@@ -55,6 +55,56 @@ def get_target_investor_summary(stock_code: str, days: int = 5):
     return df[available_cols]
 
 
+def get_foreign_institution_trend(stock_code: str, days: int = 10):
+    """외국인/기관 합계 순매수 거래대금 + 종가 (일별). KIS API 대체용.
+
+    KIS는 접근토큰이 1일 1회 발급 원칙이라 무료 호스팅 환경(재시작마다 캐시 초기화)에서는
+    재발급이 잦아질 위험이 있어, 이미 로그인 중인 KRX 세션으로 대체한다.
+    """
+    end = datetime.today()
+    start = end - timedelta(days=days * 2)
+
+    trade = stock.get_market_trading_value_by_date(
+        start.strftime("%Y%m%d"), end.strftime("%Y%m%d"), stock_code
+    )
+    ohlcv = stock.get_market_ohlcv_by_date(
+        start.strftime("%Y%m%d"), end.strftime("%Y%m%d"), stock_code
+    )
+
+    df = trade[["외국인합계", "기관합계"]].join(ohlcv[["종가"]], how="inner")
+    df.columns = ["foreign_net_value", "institution_net_value", "close"]
+    return df
+
+
+def get_valuation(stock_code: str) -> dict:
+    """가장 최근 거래일 기준 PER/PBR/EPS/BPS + 종가 + 외국인 보유비율. KIS API 대체용."""
+    end = datetime.today()
+    start = end - timedelta(days=10)
+
+    fundamental = stock.get_market_fundamental_by_date(
+        start.strftime("%Y%m%d"), end.strftime("%Y%m%d"), stock_code
+    )
+    ohlcv = stock.get_market_ohlcv_by_date(
+        start.strftime("%Y%m%d"), end.strftime("%Y%m%d"), stock_code
+    )
+    exhaustion = stock.get_exhaustion_rates_of_foreign_investment_by_date(
+        start.strftime("%Y%m%d"), end.strftime("%Y%m%d"), stock_code
+    )
+
+    latest_fundamental = fundamental.iloc[-1]
+    latest_price = ohlcv.iloc[-1]
+    latest_ratio = exhaustion.iloc[-1]
+
+    return {
+        "price": float(latest_price["종가"]),
+        "per": float(latest_fundamental["PER"]),
+        "pbr": float(latest_fundamental["PBR"]),
+        "eps": float(latest_fundamental["EPS"]),
+        "bps": float(latest_fundamental["BPS"]),
+        "foreign_holding_ratio": float(latest_ratio["지분율"]),
+    }
+
+
 if __name__ == "__main__":
     # 동작 확인용 (네트워크 필요, 로컬에서 실행)
     samsung = get_target_investor_summary("005930")

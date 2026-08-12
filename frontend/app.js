@@ -47,7 +47,7 @@ async function loadForeignInvestor(stock) {
   try {
     const rows = await fetchJson(`/api/foreign-investor?stock=${encodeURIComponent(stock)}`);
     clearState(id);
-    const labels = rows.map((r) => r.date.slice(4, 6) + "/" + r.date.slice(6, 8));
+    const labels = rows.map((r) => r.date.slice(5));
     const foreign = rows.map((r) => r.foreign_net_qty);
     const institution = rows.map((r) => r.institution_net_qty);
 
@@ -57,8 +57,8 @@ async function loadForeignInvestor(stock) {
       data: {
         labels,
         datasets: [
-          { label: "외국인 순매수(주)", data: foreign, borderColor: COLORS.accent, backgroundColor: "transparent", tension: 0.3 },
-          { label: "기관 순매수(주)", data: institution, borderColor: COLORS.accent2, backgroundColor: "transparent", tension: 0.3 },
+          { label: "외국인 순매수(원)", data: foreign, borderColor: COLORS.accent, backgroundColor: "transparent", tension: 0.3 },
+          { label: "기관 순매수(원)", data: institution, borderColor: COLORS.accent2, backgroundColor: "transparent", tension: 0.3 },
         ],
       },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { boxWidth: 10, font: { size: 11 } } } } },

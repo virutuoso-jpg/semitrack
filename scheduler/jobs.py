@@ -21,7 +21,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from clients import kis_client, krx_investor, dart_client
+from clients import krx_investor, dart_client
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -41,11 +41,13 @@ def _save_snapshot(section: str, payload: dict):
 
 
 def update_foreign_investor():
-    """외국인 수급 - 3~6시간 주기"""
+    """외국인/기관 수급 - 3~6시간 주기 (KRX 기준, KIS 토큰 재발급 위험 회피)"""
     result = {}
     for name, code in TICKERS.items():
         try:
-            result[name] = kis_client.get_foreign_institution_trend(code)
+            df = krx_investor.get_foreign_institution_trend(code)
+            df.index = df.index.strftime("%Y-%m-%d")
+            result[name] = df.to_dict()
         except Exception as e:
             logger.error(f"[외국인수급] {name} 조회 실패: {e}")
     _save_snapshot("foreign_investor", result)

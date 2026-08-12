@@ -7,6 +7,7 @@
 """
 
 import os
+import xml.etree.ElementTree as ET
 from urllib.parse import unquote
 
 import requests
@@ -29,6 +30,23 @@ HS_CODES = {
 }
 
 
+def _parse_xml_response(text: str) -> dict:
+    """공공데이터포털은 type=json을 줘도 가끔 XML로 응답하는 경우가 있어 대비용으로 파싱한다."""
+    root = ET.fromstring(text)
+    header = root.find("header")
+    items = [
+        {child.tag: child.text for child in item_el}
+        for item_el in root.findall("body/items/item")
+    ]
+    return {
+        "header": {
+            "resultCode": header.findtext("resultCode", "") if header is not None else "",
+            "resultMsg": header.findtext("resultMsg", "") if header is not None else "",
+        },
+        "body": {"items": {"item": items}},
+    }
+
+
 def get_trade_stats(hs_code: str, strt_yymm: str, end_yymm: str, cnty_cd: str) -> dict:
     """
     품목별(HS코드) 국가별 수출입실적 조회 (수량·금액 → 단가 계산용)
@@ -49,6 +67,10 @@ def get_trade_stats(hs_code: str, strt_yymm: str, end_yymm: str, cnty_cd: str) -
     }
     resp = requests.get(BASE_URL, params=params, timeout=10)
     resp.raise_for_status()
+
+    text = resp.text.lstrip()
+    if text.startswith("<?xml") or text.startswith("<"):
+        return _parse_xml_response(resp.text)
     return resp.json()
 
 
