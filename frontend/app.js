@@ -116,6 +116,38 @@ async function loadFinancials(stock) {
   }
 }
 
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str ?? "";
+  return div.innerHTML;
+}
+
+async function loadDailyDigest(stock) {
+  const briefingEl = document.getElementById("foreignBriefingText");
+  const listEl = document.getElementById("disclosureList");
+  briefingEl.textContent = "불러오는 중...";
+  listEl.innerHTML = "";
+  try {
+    const data = await fetchJson(`/api/daily-digest?stock=${encodeURIComponent(stock)}`);
+    briefingEl.textContent = data.foreign_briefing || "외국인 수급 데이터 없음";
+
+    if (!data.disclosures.length) {
+      listEl.innerHTML = `<li>최근 공시 없음</li>`;
+      return;
+    }
+    listEl.innerHTML = data.disclosures
+      .map((d) => {
+        const dateLabel = `${d.date.slice(4, 6)}/${d.date.slice(6, 8)}`;
+        const cls = d.is_shareholder_return ? "shareholder-return" : "";
+        return `<li class="${cls}"><span class="digest-date">${dateLabel}</span><a href="${encodeURI(d.url)}" target="_blank" rel="noopener">${escapeHtml(d.title)}</a>${d.filer ? ` <span class="digest-date">(${escapeHtml(d.filer)})</span>` : ""}</li>`;
+      })
+      .join("");
+  } catch (e) {
+    briefingEl.textContent = "";
+    listEl.innerHTML = `<li class="state-msg error">${e.message}</li>`;
+  }
+}
+
 async function loadValuation(stock) {
   const perEl = document.getElementById("perValue");
   const pbrEl = document.getElementById("pbrValue");
@@ -239,6 +271,7 @@ async function loadCapex() {
 }
 
 function loadStockScoped(stock) {
+  loadDailyDigest(stock);
   loadForeignInvestor(stock);
   loadInstitutionFlow(stock);
   loadFinancials(stock);

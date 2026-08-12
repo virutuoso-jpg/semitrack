@@ -105,8 +105,32 @@ def get_valuation(stock_code: str) -> dict:
     }
 
 
+def get_foreign_investor_briefing(stock_code: str, days: int = 1) -> str:
+    """아침 브리핑용 외국인 수급 한 줄 요약 (전일 순매수 방향 + 최근 연속 매매 동향)"""
+    df = get_foreign_institution_trend(stock_code, days=max(days, 5))
+    if df.empty:
+        return "외국인 수급 데이터 없음"
+
+    latest = df.iloc[-1]
+    direction = "순매수" if latest["foreign_net_value"] >= 0 else "순매도"
+
+    streak = 0
+    streak_sign = latest["foreign_net_value"] >= 0
+    for value in reversed(df["foreign_net_value"].tolist()):
+        if (value >= 0) == streak_sign:
+            streak += 1
+        else:
+            break
+
+    return (
+        f"전일 외국인 {direction} {abs(latest['foreign_net_value']):,.0f}원"
+        f" ({streak}거래일 연속 {'순매수' if streak_sign else '순매도'})"
+    )
+
+
 if __name__ == "__main__":
     # 동작 확인용 (네트워크 필요, 로컬에서 실행)
     samsung = get_target_investor_summary("005930")
     print("삼성전자 사모/금융투자/연기금 순매수 동향:")
     print(samsung)
+    print(get_foreign_investor_briefing("005930"))

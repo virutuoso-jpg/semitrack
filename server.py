@@ -157,6 +157,27 @@ def valuation():
     return jsonify({"stock": stock, **data})
 
 
+@app.route("/api/daily-digest")
+def daily_digest():
+    stock = request.args.get("stock", "삼성전자")
+    ticker = TICKERS.get(stock)
+
+    try:
+        disclosures = dart_client.get_recent_disclosures(stock, days=2)
+    except Exception as e:
+        app.logger.error(f"공시 조회 실패: {e}")
+        disclosures = []
+
+    foreign_briefing = None
+    if ticker:
+        try:
+            foreign_briefing = krx_investor.get_foreign_investor_briefing(ticker)
+        except Exception as e:
+            app.logger.error(f"외국인 브리핑 조회 실패: {e}")
+
+    return jsonify({"stock": stock, "disclosures": disclosures, "foreign_briefing": foreign_briefing})
+
+
 @app.route("/api/sox-index")
 def sox_index():
     try:
