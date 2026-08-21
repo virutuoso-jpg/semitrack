@@ -1,6 +1,8 @@
 """
 반도체 업황 참고지표 클라이언트 (인증키 불필요)
 - 필라델피아 반도체지수(SOX): 업황 심리를 보여주는 대표 지수
+- 야간 선물/환율: 코스피200 야간선물(유렉스)은 무료로 못 구해서, 대신 한국 반도체주와
+  더 직접적으로 연동되는 나스닥/S&P500 선물 + 원달러 환율로 대체
 - 마이크론(Micron) 분기 매출: 한국 업체보다 실적 발표가 앞서는 메모리 업황 선행지표
 """
 
@@ -8,24 +10,33 @@ from datetime import date
 
 import requests
 
-SOX_URL = "https://query1.finance.yahoo.com/v8/finance/chart/%5ESOX"
+YAHOO_CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
 SEC_BASE = "https://data.sec.gov/api/xbrl/companyconcept"
 MICRON_CIK = "CIK0000723125"
 
 # SEC는 요청자를 식별할 수 있는 User-Agent를 요구한다 (미기재 시 차단될 수 있음)
 SEC_HEADERS = {"User-Agent": "SemiTrack-Personal-Project contact@example.com"}
 
+OVERNIGHT_SYMBOLS = {
+    "나스닥100 선물": "NQ=F",
+    "S&P500 선물": "ES=F",
+    "원/달러 환율": "KRW=X",
+}
 
-def get_sox_index() -> dict:
-    """필라델피아 반도체지수(SOX) 최근 종가 및 전일 대비 변동률"""
+
+def _get_yahoo_quote(symbol: str) -> dict:
+    """Yahoo Finance 비공식 차트 API로 최근 종가 및 전일 대비 변동률 조회"""
     resp = requests.get(
-        SOX_URL, params={"range": "10d", "interval": "1d"}, headers={"User-Agent": "Mozilla/5.0"}, timeout=10
+        YAHOO_CHART_URL.format(symbol=symbol),
+        params={"range": "10d", "interval": "1d"},
+        headers={"User-Agent": "Mozilla/5.0"},
+        timeout=10,
     )
     resp.raise_for_status()
     result = resp.json()["chart"]["result"][0]
     closes = [c for c in result["indicators"]["quote"][0]["close"] if c is not None]
     if len(closes) < 2:
-        raise ValueError("SOX 종가 데이터가 충분하지 않습니다.")
+        raise ValueError(f"{symbol} 종가 데이터가 충분하지 않습니다.")
 
     latest, prev = closes[-1], closes[-2]
     return {
@@ -33,6 +44,23 @@ def get_sox_index() -> dict:
         "prev_close": round(prev, 2),
         "change_pct": round((latest - prev) / prev * 100, 2),
     }
+
+
+def get_sox_index() -> dict:
+    """필라델피아 반도체지수(SOX) 최근 종가 및 전일 대비 변동률"""
+    return _get_yahoo_quote("%5ESOX")
+
+
+def get_overnight_futures() -> list:
+    """야간(한국시간 기준 밤사이) 시세 - 나스닥/S&P500 선물 + 원달러 환율"""
+    result = []
+    for name, symbol in OVERNIGHT_SYMBOLS.items():
+        try:
+            quote = _get_yahoo_quote(symbol)
+            result.append({"name": name, **quote})
+        except Exception as e:
+            result.append({"name": name, "error": str(e)})
+    return result
 
 
 def get_micron_revenue_trend(quarters: int = 4) -> list:
@@ -59,4 +87,5 @@ def get_micron_revenue_trend(quarters: int = 4) -> list:
 
 if __name__ == "__main__":
     print("SOX:", get_sox_index())
+    print("야간 시세:", get_overnight_futures())
     print("Micron 분기 매출:", get_micron_revenue_trend())

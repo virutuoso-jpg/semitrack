@@ -187,6 +187,15 @@ def sox_index():
         return jsonify({"error": "SOX 지수 조회 실패"}), 502
 
 
+@app.route("/api/overnight-futures")
+def overnight_futures():
+    try:
+        return jsonify(market_reference.get_overnight_futures())
+    except Exception as e:
+        app.logger.error(f"야간 시세 조회 실패: {e}")
+        return jsonify({"error": "야간 시세 조회 실패"}), 502
+
+
 @app.route("/api/micron-trend")
 def micron_trend():
     try:

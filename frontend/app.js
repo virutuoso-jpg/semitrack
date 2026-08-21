@@ -182,6 +182,30 @@ async function loadSoxIndex() {
   }
 }
 
+async function loadOvernightFutures() {
+  const row = document.getElementById("overnightRow");
+  row.innerHTML = `<span class="metric-sub">불러오는 중...</span>`;
+  try {
+    const rows = await fetchJson(`/api/overnight-futures`);
+    row.innerHTML = rows
+      .map((r) => {
+        if (r.error) {
+          return `<div class="metric"><span class="metric-label">${escapeHtml(r.name)}</span><span class="metric-value small">-</span></div>`;
+        }
+        const sign = r.change_pct >= 0 ? "+" : "";
+        const cls = r.change_pct >= 0 ? "up" : "down";
+        return `<div class="metric">
+          <span class="metric-label">${escapeHtml(r.name)}</span>
+          <span class="metric-value small">${r.latest_close.toLocaleString()}</span>
+          <span class="metric-value small ${cls}">${sign}${r.change_pct}%</span>
+        </div>`;
+      })
+      .join("");
+  } catch (e) {
+    row.innerHTML = `<span class="metric-sub">${e.message}</span>`;
+  }
+}
+
 async function loadMicronTrend() {
   const id = "micronBody";
   showState(id, "loading", "불러오는 중...");
@@ -291,4 +315,5 @@ loadStockScoped(currentStock);
 loadExportStats();
 loadCapex();
 loadSoxIndex();
+loadOvernightFutures();
 loadMicronTrend();
