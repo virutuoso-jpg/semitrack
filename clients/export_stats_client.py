@@ -20,6 +20,13 @@ load_dotenv()
 # unquote로 먼저 원복시켜 어느 쪽 키를 넣어도 정상 동작하도록 처리.
 CUSTOMS_API_KEY = unquote(os.getenv("CUSTOMS_API_KEY", ""))
 BASE_URL = "https://apis.data.go.kr/1220000/nitemtrade/getNitemtradeList"
+TEN_DAY_URL = "https://apis.data.go.kr/1220000/prlstMmUtPrviExpAcrs/getPrlstMmUtPrviExpAcrs"
+
+# 관세청_수출 주요품목별 10일 단위 잠정치 통계의 10대 품목 순서 (itemUsdAmt00은 전체수출금액)
+TEN_DAY_ITEMS = [
+    "전체", "반도체", "철강제품", "승용차", "석유제품", "무선통신기기",
+    "선박", "자동차부품", "컴퓨터주변기기", "정밀기기", "가전제품",
+]
 
 # HS코드(6단위) - 반도체 관련 주요 품목
 # 8542: 전자집적회로 / 854232: 메모리(D램·낸드 등) / 854231: 프로세서·컨트롤러
@@ -74,7 +81,56 @@ def get_trade_stats(hs_code: str, strt_yymm: str, end_yymm: str, cnty_cd: str) -
     return resp.json()
 
 
+def get_semiconductor_ten_day_trend(months_back: int = 2, limit: int = 6) -> list:
+    """반도체 수출 10일 단위(순별) 잠정치 추이 (전국 기준, 국가 구분 없음).
+
+    관세청은 1~10일/1~20일/1~말일 세 시점만 발표하며 전부 '월초부터의 누계'다.
+    (예: 8월 '1~20일' 값은 8월 11~20일 실적이 아니라 8월 1일부터 20일까지 누계)
+
+    Returns: 최근 항목부터 최대 limit개, 각 {year, month, period(01~10 등), semiconductor_usd, total_usd, share_pct}
+    """
+    from datetime import datetime, timedelta
+
+    end = datetime.today()
+    start = end - timedelta(days=months_back * 31)
+    params = {
+        "serviceKey": CUSTOMS_API_KEY,
+        "strtYymm": start.strftime("%Y%m"),
+        "endYymm": end.strftime("%Y%m"),
+    }
+    resp = requests.get(TEN_DAY_URL, params=params, timeout=10)
+    resp.raise_for_status()
+
+    root = ET.fromstring(resp.text)
+    header = root.find("header")
+    if header is not None and header.findtext("resultCode") != "00":
+        raise RuntimeError(header.findtext("resultMsg", "조회 실패"))
+
+    records = []
+    for item_el in root.findall("body/items/item"):
+        def amt(idx: int) -> float:
+            text = item_el.findtext(f"itemUsdAmt{idx:02d}", "0")
+            return float(text.replace(",", "").strip()) * 1000  # 천 달러 -> 달러
+
+        total = amt(0)
+        semiconductor = amt(1)  # TEN_DAY_ITEMS 순서상 1번이 반도체
+        records.append(
+            {
+                "year": item_el.findtext("priodYear"),
+                "month": item_el.findtext("priodMon"),
+                "period": item_el.findtext("priodDt"),
+                "semiconductor_usd": semiconductor,
+                "total_usd": total,
+                "share_pct": round(semiconductor / total * 100, 1) if total else 0,
+            }
+        )
+
+    records.sort(key=lambda r: (r["month"], r["period"]))
+    return records[-limit:]
+
+
 if __name__ == "__main__":
     # 동작 확인용: 최근 3개월 메모리반도체 대(對)미국 수출입 실적
     result = get_trade_stats(HS_CODES["메모리반도체"], "202605", "202607", cnty_cd="US")
     print(result)
+    print(get_semiconductor_ten_day_trend())

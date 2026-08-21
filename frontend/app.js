@@ -236,6 +236,27 @@ async function loadMicronTrend() {
   }
 }
 
+async function loadTenDayExports() {
+  const tbody = document.querySelector("#tenDayTable tbody");
+  tbody.innerHTML = `<tr><td colspan="3" class="state-msg loading">불러오는 중...</td></tr>`;
+  try {
+    const rows = await fetchJson(`/api/export-tenday`);
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="3" class="state-msg empty">데이터가 없습니다.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows
+      .map((r) => {
+        const label = `${r.month.slice(0, 4)}.${r.month.slice(4, 6)} (${r.period}일)`;
+        const usdBn = (r.semiconductor_usd / 1e9).toFixed(2);
+        return `<tr><td>${label}</td><td>$${usdBn}B</td><td>${r.share_pct}%</td></tr>`;
+      })
+      .join("");
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="3" class="state-msg error">${e.message}</td></tr>`;
+  }
+}
+
 async function loadExportStats() {
   const id = "exportStatsBody";
   showState(id, "loading", "불러오는 중...");
@@ -313,6 +334,7 @@ document.getElementById("stockToggle").addEventListener("click", (e) => {
 
 loadStockScoped(currentStock);
 loadExportStats();
+loadTenDayExports();
 loadCapex();
 loadSoxIndex();
 loadOvernightFutures();

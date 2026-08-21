@@ -137,6 +137,15 @@ def export_stats():
     return jsonify(parsed)
 
 
+@app.route("/api/export-tenday")
+def export_tenday():
+    try:
+        return jsonify(export_stats_client.get_semiconductor_ten_day_trend())
+    except Exception as e:
+        app.logger.error(f"순별 수출통계 조회 실패: {e}")
+        return jsonify({"error": "순별 수출통계 조회 실패"}), 502
+
+
 @app.route("/api/hyperscaler-capex")
 def hyperscaler_capex_route():
     return jsonify(hyperscaler_capex.get_history())
